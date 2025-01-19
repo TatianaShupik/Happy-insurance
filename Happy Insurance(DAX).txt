@@ -1,0 +1,132 @@
+EVALUATE (
+	SUMMARIZE(
+		Sales,
+		Sales[ProductSK],
+		"Sum Revenue", sum(Sales[Revenue])
+	)
+)
+
+//---------------------------------------------------------
+EVALUATE(
+	ROW("Total Revenue for 2012",
+		CALCULATE(
+			sum(Sales[Revenue]),
+			'Date'[Year] = 2011
+		)
+	)
+)
+
+//---------------------------------------------------------
+EVALUATE(
+	row("Max Sales",
+		MAX(Sales[Revenue])
+	)
+)
+
+//---------------------------------------------------------
+DEFINE
+    VAR CustAmt =
+        COUNT ( Customers[CustomerSK] )
+
+EVALUATE
+( ROW ( "Avg Customer Rev", SUM ( Sales[Revenue] ) / CustAmt ) )
+
+//---------------------------------------------------------
+EVALUATE(
+	row("Same Period Last Year",
+		CALCULATE(SUM(Sales[Revenue]),SAMEPERIODLASTYEAR('Date'[Date]))
+	)
+)
+
+//---------------------------------------------------------
+EVALUATE(
+	row("All Revenue By Country",
+		CALCULATE(	sum(Sales[Revenue]), 
+				
+					Customers[Country] = "USA",
+					ALL(Orders)
+				)
+		)			
+)
+
+//---------------------------------------------------------
+EVALUATE(
+	ADDCOLUMNS(Sales, "CustomersName", related(Customers[Name]))
+)
+
+//---------------------------------------------------------
+EVALUATE(
+	ROW("Total YTD",
+		TOTALYTD(Sum(Sales[Revenue]),'Date'[Date])
+	)
+)
+
+//---------------------------------------------------------
+EVALUATE(
+	ROW("Total QTD",
+		TOTALQTD(Sum(Sales[Revenue]),'Date'[Date])
+	)
+)
+
+//---------------------------------------------------------
+EVALUATE(
+	ROW("Total MTD",
+		TOTALMTD(Sum(Sales[Revenue]),'Date'[Date])
+	)
+)
+
+//---------------------------------------------------------
+EVALUATE(
+	row("Price Variance",
+    VAR AvgPrice =
+        CALCULATE ( AVERAGE ( Sales[Price] ), ALL ( Sales ) )
+    RETURN
+        AVERAGE ( Sales[Price] ) - AvgPrice
+	)
+)
+
+//---------------------------------------------------------
+
+EVALUATE
+(
+    ROW (
+        "Customer Retention Rate",
+            VAR TotalCustomers =
+                DISTINCTCOUNT ( Sales[CustomerSK] )
+            VAR RepeatCustomers =
+                CALCULATE (
+                    DISTINCTCOUNT ( Sales[CustomerSK] ),
+                    FILTER (
+                        ALL ( Sales ),
+                        Sales[CustomerSK]
+                            IN VALUES ( Sales[CustomerSK] )
+                                && Sales[DateKey] < MAX ( Sales[DateKey] )
+                    )
+                )
+            RETURN
+                DIVIDE ( RepeatCustomers, TotalCustomers )
+    )
+)
+
+
+//---------------------------------------------------------
+
+
+
+
+EVALUATE
+(
+    ROW (
+        "Numbers of Lost Customers",
+            VAR Numbers =
+                SUMX (
+                    CALCULATETABLE (
+                        SUMMARIZE ( 'Sales', 'Sales'[CustomerSK] ),
+                        PARALLELPERIOD ( 'Date'[Date], -1, YEAR )
+                    ),
+                    IF ( ( CALCULATE ( COUNTROWS ( 'Sales' ) ) ) = 0, 1, 0 )
+                )
+            RETURN
+                IF ( HASONEVALUE ( 'Date'[Year] ), Numbers )
+    )
+)
